@@ -10,17 +10,18 @@ from tensorflow.keras.applications.resnet50 import ResNet50, preprocess_input
 from tensorflow.keras.preprocessing import image as kimage
 import os
 from sklearn.cluster import DBSCAN
+from scipy.spatial.transform import Rotation as R
 
 # PATHS
-DATABASE_PATH = '/workspace/src/create_dataset/create_dataset/dataset_processed_real'
+DATABASE_PATH = '/workspace/src/create_dataset/create_dataset/dataset_processed_pic4ser'
 DEBUG_PATH = '/workspace/src/relocalization_pkg/reloc_test/test_debug'
 
 # DATABASES
-DATABASE_FILE = 'filtered_dataset_real.npy'
+DATABASE_FILE = 'filtered_dataset_pic4ser.npy'
 FEATURES_FILE = 'resnet.npy'
 
 # PARAMETERS
-NUM_PER_QUERY = 5
+NUM_PER_QUERY = 10
 MIN_SAMPLES = 15
 EPS = 0.8
 
@@ -43,6 +44,8 @@ class PoseEstimationNode(Node):
         self.query_count = 0
         self.relocalization_status = False
         self.all_indexes_top_poses = []
+        self.last_query = None
+        self.indexes_top_poses = []
         
         # Databases
         self.filtered_database = np.load(os.path.join(DATABASE_PATH, DATABASE_FILE))
@@ -64,8 +67,8 @@ class PoseEstimationNode(Node):
         # Acquire query image
         bridge = CvBridge()
         query_image = bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
-        query_image = cv.resize(query_image, (224, 224))
-        self.query_buffer.append(query_image)
+        self.last_query = cv.resize(query_image, (224, 224))
+        self.query_buffer.append(self.last_query)
         
         # Save query image
         cv.imwrite(os.path.join(DEBUG_PATH, f'image_debug_{self.query_count}.png'), query_image)
@@ -88,10 +91,10 @@ class PoseEstimationNode(Node):
         features = self.feature_extraction(query_image)
         
         # Similarity
-        indexes_top_poses = self.similarity(features)
+        self.indexes_top_poses = self.similarity(features)
         
         # List of top poses
-        self.all_indexes_top_poses.extend(indexes_top_poses)
+        self.all_indexes_top_poses.extend(self.indexes_top_poses)
         self.all_indexes_top_poses = list(set(self.all_indexes_top_poses))
         
         self.query_count += 1
@@ -137,7 +140,32 @@ class PoseEstimationNode(Node):
         return result
     
     def centroid(self):
-        return np.mean(self.filtered_database[self.all_indexes_top_poses][:,1:8], axis=0)
+        centroid = np.mean(self.filtered_database[self.all_indexes_top_poses][:,1:8], axis=0)
+        last_query_indices = set(self.indexes_top_poses).intersection(self.all_indexes_top_poses)
+        # if last query indices is empty, return the centroid of all indexes
+        if not last_query_indices:
+            self.get_logger().info('Last query indices EMPTY!!!')
+            return np.mean(self.filtered_database[self.all_indexes_top_poses][:,1:8], axis=0)
+        else:
+            last_query_orientation = self.filtered_database[list(last_query_indices)][:,4:8]
+            
+        # Convert quaternion to euler
+        euler_angles = []
+        for orientation in last_query_orientation:
+            rotation = R.from_quat(orientation)
+            euler_angles.append(rotation.as_euler('zyx'))
+          
+        # Calculate the mean of the z-axis rotation  
+        mean_z_rotation = np.mean([angle[0] for angle in euler_angles])    
+        
+        # Convert the mean z-axis rotation back to a quaternion
+        mean_rotation = R.from_euler('zyx', [mean_z_rotation, 0, 0])
+        mean_quaternion = mean_rotation.as_quat()
+        
+        # Combine the centroid position and mean quaternion to form the centroid pose
+        centroid[3:8] = mean_quaternion
+        self.get_logger().info('OPTIMIZED CENTROID')
+        return centroid
         
     def publish_initial_pose(self, initial_pose):
         pose_msg = PoseWithCovarianceStamped()
@@ -153,10 +181,10 @@ class PoseEstimationNode(Node):
         pose_msg.pose.pose.orientation.w = initial_pose[6]
         
         # Set the covariance matrix
-        pose_msg.pose.covariance[0] = 0.3
-        pose_msg.pose.covariance[7] = 0.3
-        pose_msg.pose.covariance[28] = 0.3
-        pose_msg.pose.covariance[35] = 0.3
+        pose_msg.pose.covariance[0] = 0.5
+        pose_msg.pose.covariance[7] = 0.5
+        pose_msg.pose.covariance[28] = 0.5
+        pose_msg.pose.covariance[35] = 0.5
         
         # Publish the pose
         self.initial_pose_pub.publish(pose_msg)

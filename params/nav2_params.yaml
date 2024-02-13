@@ -30,15 +30,15 @@ amcl:
     sigma_hit: 0.2
     tf_broadcast: true
     transform_tolerance: 1.0
-    update_min_a: 0.1 # 0.2
-    update_min_d: 0.1 # 0.25
+    update_min_a: 0.05 # 0.2
+    update_min_d: 0.05 # 0.25
     z_hit: 0.5
     z_max: 0.05
     z_rand: 0.5
     z_short: 0.005
     scan_topic: scan
     map_topic: map
-    set_initial_pose: true
+    set_initial_pose: false
     always_reset_initial_pose: false
     first_map_only: false
     initial_pose:
@@ -191,7 +191,7 @@ local_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
-        inflation_radius: 0.55
+        inflation_radius: 0.35
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
         enabled: True
@@ -254,7 +254,7 @@ global_costmap:
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
         cost_scaling_factor: 3.0
-        inflation_radius: 0.5
+        inflation_radius: 0.35
       always_send_full_costmap: True
   global_costmap_client:
     ros__parameters:

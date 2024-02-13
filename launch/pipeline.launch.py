@@ -37,7 +37,7 @@ def generate_launch_description():
     ld = LaunchDescription()
     
     ld.add_action(acquire_query_node)
-    #ld.add_action(reloc_eval_node)
+    ld.add_action(reloc_eval_node)
     ld.add_action(converge_to_pose_node)
     ld.add_action(pose_estimation_node)
     

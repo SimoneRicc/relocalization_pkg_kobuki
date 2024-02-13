@@ -10,7 +10,7 @@ import cv2
 import os
 from cv_bridge import CvBridge, CvBridgeError
 from rclpy.qos import QoSProfile, QoSHistoryPolicy, QoSReliabilityPolicy, QoSDurabilityPolicy
-
+from nav2_simple_commander.robot_navigator import BasicNavigator
 
 FREQUENCY_QUERY = 2.5  # Hz
 TWIST_ANGULAR_Z = 1.0 # rad/s
@@ -21,12 +21,20 @@ class AcquireQueryNode(Node):
         super().__init__('acquire_query_node')
         
         # General variables
+        self.init_pose = PoseStamped()
+        self.init_pose.header.frame_id = "map"
+        
+        
         self.trigger_relocalization = False # Set to True to enable relocalization task
         self.image_count = 0
         self.image = None # Image message
         self.bridge = CvBridge()
         self.rate = self.create_rate(100)
         self.moving_average = 1
+        self.nav = BasicNavigator()
+        self.nav.waitUntilNav2Active()
+        #self.nav.setInitialPose()
+        self.no_relocalization = True
         
         qos_profile = QoSProfile(
             history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST,
@@ -60,14 +68,45 @@ class AcquireQueryNode(Node):
     
     def moving_average_weights_callback(self, msg):
         self.moving_average = msg.data  
+        self.get_logger().info(f'Moving average: {self.moving_average}')
         
     def check_trigger(self):
-        if self.trigger_relocalization:# and (self.moving_average < 0.55):
-            self.get_logger().info('Relocalization pipeline triggered...')
-            self.trigger_relocalization = False
+        if self.trigger_relocalization:
+            # # Laboratory -3.00493 -3.33554
+            # goal_pose = PoseStamped()
+            # goal_pose.header.frame_id = "map"
+            # goal_pose.pose.position.x = -3.00493
+            # goal_pose.pose.position.y = -3.33554
+            # goal_pose.pose.position.z = 0.0
+            # goal_pose.pose.orientation.x = 0.0
+            # goal_pose.pose.orientation.y = 0.0
+            # goal_pose.pose.orientation.z = 0.692914
+            # goal_pose.pose.orientation.w = 0.721021
+            # self.nav.goToPose(goal_pose)
+            
+            # Corridor -6.48, -14.36
+            goal_pose = PoseStamped()
+            goal_pose.header.frame_id = "map"
+            goal_pose.pose.position.x = -6.48
+            goal_pose.pose.position.y = -14.36
+            goal_pose.pose.position.z = 0.0
+            goal_pose.pose.orientation.x = 0.0
+            goal_pose.pose.orientation.y = 0.0
+            goal_pose.pose.orientation.z = 0.692914
+            goal_pose.pose.orientation.w = 0.721021
+            self.nav.goToPose(goal_pose)
+            
+            #(self.moving_average < 0.51):
+            if self.moving_average < 0.00051:
+                #self.no_relocalization = False
+                self.trigger_relocalization = False
+                self.nav.cancelTask()
+                self.get_logger().info('Relocalization pipeline triggered...')
+                    
+                    
 
-            # Start the calculation function in a new thread
-            threading.Thread(target=self.publisher_query).start()
+                    # Start the calculation function in a new thread
+                threading.Thread(target=self.publisher_query).start()
             
     def publisher_query(self):
         '''Robot starts to rotate about 360 degrees and publish query images at a certain frequency'''
@@ -96,7 +135,6 @@ class AcquireQueryNode(Node):
                 last_query_time = self.get_clock().now()
             self.rate.sleep()
         
-        
         self.image_count = 0
         # Stop rotation
         twist.angular.z = 0.0
@@ -121,7 +159,7 @@ class AcquireQueryNode(Node):
             # cv2.imwrite(image_filename, cv_image)
             self.query_image_pub.publish(self.image)
             self.image_buffer.append(self.image)
-            self.get_logger().info(f'Image {self.image_count} acquired...')
+            #self.get_logger().info(f'Image {self.image_count} acquired...')
             self.image_count += 1
     
     def handle_trigger_relocalization(self, request, response):

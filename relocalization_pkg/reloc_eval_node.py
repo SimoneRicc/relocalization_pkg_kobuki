@@ -6,14 +6,16 @@ from std_msgs.msg import Float64
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import deque
+import os
+
+TEST_PATH = '/workspace/src/relocalization_pkg/test_real/'
+
 class RelocEvalNode(Node):
     def __init__(self):
         super().__init__('reloc_eval_node')
         self.mean_weight_buffer = deque(maxlen=5)
         self.max_current_weight_buffer = []
-        #self.buffer = deque(maxlen=100)
-        #self.fig, self.ax = plt.subplots()
-        
+        self.moving_average_array = np.array([])
         
         self.pub_max_weight_particle = self.create_publisher(Float64, '/max_particle_weight', 10)
         #self.pub_entropy = self.create_publisher(Float64, '/entropy', 10)
@@ -21,6 +23,7 @@ class RelocEvalNode(Node):
         #self.pub = self.create_publisher(Float64, '/entropy_change', 10)
         
         qos_profile = QoSProfile(depth=10, history=QoSHistoryPolicy.KEEP_LAST, reliability=QoSReliabilityPolicy.BEST_EFFORT)
+        
         self.subscription = self.create_subscription(
             ParticleCloud,  
             '/particle_cloud',
@@ -43,6 +46,7 @@ class RelocEvalNode(Node):
     #     weights = np.array([particle.weight for particle in msg.particles])
     #     weights = weights / np.sum(weights)
     #     entropy = -np.sum(weights * np.log2(weights))
+    #     #self.get_logger().info(f'Entropy: {entropy}')
     #     msg = Float64()
     #     msg.data = entropy
     #     self.pub_entropy.publish(msg)
@@ -65,18 +69,25 @@ class RelocEvalNode(Node):
         # self.ax.plot(self.buffer, label='Weight')
         # plt.pause(0.01)
         mean_msg = Float64()
-        mean_msg.data = moving_average*1000
-        self.get_logger().info(f'Mean weight: {mean_msg.data}')
+        mean_msg.data = moving_average
+        #self.get_logger().info(f'Mean weight: {mean_msg.data}')
+        self.moving_average_array = np.concatenate((self.moving_average_array, [moving_average*1000]))
         self.pub_moving_average_weights.publish(mean_msg)
         
+    def destroy_node(self):
+        np.save(os.path.join(TEST_PATH, 'moving_average'), self.moving_average_array)
+        return super().destroy_node()
     
 
 def main(args=None):
     rclpy.init(args=args)
 
     max_particle_weight_publisher = RelocEvalNode()
-    rclpy.spin(max_particle_weight_publisher)
-
+    try:
+        rclpy.spin(max_particle_weight_publisher)
+    except KeyboardInterrupt:
+        pass
+    
     max_particle_weight_publisher.destroy_node()
     rclpy.shutdown()
 

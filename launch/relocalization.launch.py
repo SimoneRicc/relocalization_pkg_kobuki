@@ -11,7 +11,8 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     # Parameters
     rviz_file_name = 'relocalization.rviz'
-    map_file_name = 'map_pic4ser.yaml'
+    #map_file_name = 'map_pic4ser.yaml'
+    map_file_name = 'covivio_v6.yaml'
     
     # Configuration variables
     pkg_share = FindPackageShare('relocalization_pkg').find('relocalization_pkg')
@@ -45,7 +46,7 @@ def generate_launch_description():
     
     declare_rviz_cmd = DeclareLaunchArgument(
         name='use_rviz',
-        default_value='True',
+        default_value='False',
         description='Whether to start RViz')
     
     declare_namespace_cmd = DeclareLaunchArgument(
