@@ -181,10 +181,10 @@ class PoseEstimationNode(Node):
         pose_msg.pose.pose.orientation.w = initial_pose[6]
         
         # Set the covariance matrix
-        pose_msg.pose.covariance[0] = 0.5
-        pose_msg.pose.covariance[7] = 0.5
-        pose_msg.pose.covariance[28] = 0.5
-        pose_msg.pose.covariance[35] = 0.5
+        pose_msg.pose.covariance[0] = 0.4
+        pose_msg.pose.covariance[7] = 0.4
+        pose_msg.pose.covariance[28] = 0.4
+        pose_msg.pose.covariance[35] = 0.4
         
         # Publish the pose
         self.initial_pose_pub.publish(pose_msg)

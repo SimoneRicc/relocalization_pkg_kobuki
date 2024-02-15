@@ -61,11 +61,11 @@ class ConvergeToPose(Node):
             self.max_particle_weight = 0.0
             self.flag += 1
         if self.status_initialpose:
-            #self.get_logger().info(f'[TIMER CALLBACK] Max particle weight: {self.max_particle_weight}')
+            self.get_logger().info(f'[TIMER CALLBACK] Max particle weight: {self.max_particle_weight}')
             self.rate.sleep()
             # Need convergence
             if self.max_particle_weight < MAX_WEIGHT_THRESHOLD and (self.get_clock().now().nanoseconds/1e9 - self.start_time) < MAX_TIME_THRESHOLD:
-                #self.get_logger().info(f'[TIMER CALLBACK] Moving robot...')
+                self.get_logger().info(f'[TIMER CALLBACK] Moving robot...')
                 twist = Twist()
                 twist.angular.z = TWIST_ANGULAR_Z
                 self.pub_cmd_vel.publish(twist)
@@ -86,11 +86,23 @@ class ConvergeToPose(Node):
                     msg.data = self.convergence_status
                     self.convergence_status_publisher.publish(msg)
                     
-                    # # Laboratory -3.00493 -3.33554
+                    # # Laboratory X1 -1.18, -4.56
                     # goal_pose = PoseStamped()
                     # goal_pose.header.frame_id = "map"
-                    # goal_pose.pose.position.x = -3.00493
-                    # goal_pose.pose.position.y = -3.33554
+                    # goal_pose.pose.position.x = -1.18
+                    # goal_pose.pose.position.y = -4.56
+                    # goal_pose.pose.position.z = 0.0
+                    # goal_pose.pose.orientation.x = 0.0
+                    # goal_pose.pose.orientation.y = 0.0
+                    # goal_pose.pose.orientation.z = 0.692914
+                    # goal_pose.pose.orientation.w = 0.721021
+                    # self.nav.goToPose(goal_pose)  
+                    
+                    # # Laboratory X2 -2.77, 1.41
+                    # goal_pose = PoseStamped()
+                    # goal_pose.header.frame_id = "map"
+                    # goal_pose.pose.position.x = -2.77
+                    # goal_pose.pose.position.y = 1.41
                     # goal_pose.pose.position.z = 0.0
                     # goal_pose.pose.orientation.x = 0.0
                     # goal_pose.pose.orientation.y = 0.0
@@ -130,11 +142,23 @@ class ConvergeToPose(Node):
                     msg.data = self.convergence_status
                     self.convergence_status_publisher.publish(msg)
                     
-                    # # Laboratory -3.00493 -3.33554
+                    # # Laboratory X1 -1.18, -4.56
                     # goal_pose = PoseStamped()
                     # goal_pose.header.frame_id = "map"
-                    # goal_pose.pose.position.x = -3.00493
-                    # goal_pose.pose.position.y = -3.33554
+                    # goal_pose.pose.position.x = -1.18
+                    # goal_pose.pose.position.y = -4.56
+                    # goal_pose.pose.position.z = 0.0
+                    # goal_pose.pose.orientation.x = 0.0
+                    # goal_pose.pose.orientation.y = 0.0
+                    # goal_pose.pose.orientation.z = 0.692914
+                    # goal_pose.pose.orientation.w = 0.721021
+                    # self.nav.goToPose(goal_pose)  
+                    
+                    # # Laboratory X2 -2.77, 1.41
+                    # goal_pose = PoseStamped()
+                    # goal_pose.header.frame_id = "map"
+                    # goal_pose.pose.position.x = -2.77
+                    # goal_pose.pose.position.y = 1.41
                     # goal_pose.pose.position.z = 0.0
                     # goal_pose.pose.orientation.x = 0.0
                     # goal_pose.pose.orientation.y = 0.0
